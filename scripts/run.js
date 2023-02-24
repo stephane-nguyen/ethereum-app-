@@ -1,43 +1,42 @@
 const main = async () => {
-  const [owner, randomPerson] = await hre.ethers.getSigners(); //get wallet address to deploy to the blockchain
+  /* get wallet address to deploy to the blockchain */
+  // const signers = [owner, randomPerson, randomPerson2, randomPerson3];
+  const signers = await hre.ethers.getSigners();
+
   const waveContractFactory = await hre.ethers.getContractFactory("WavePortal");
   const waveContract = await waveContractFactory.deploy(); //create local eth network for the contract
   await waveContract.deployed(); //deployed to our local blockchain
 
   console.log("Contract deployed to:", waveContract.address);
-  console.log("Contract deployed by:", owner.address);
+  console.log("Contract deployed by:", signers[0].address);
 
   await waveContract.getTotalWaves();
 
   const firstWaveTransaction = await waveContract.wave();
   await firstWaveTransaction.wait();
 
-  await waveContract.getTotalWaves();
-
-  const secondWaveTransaction = await waveContract
-    .connect(owner.address)
-    .waveTo(waveContract.address);
+  const secondWaveTransaction = await waveContract.connect(signers[1]).wave();
   await secondWaveTransaction.wait();
 
-  const thirdWaveTransaction = await waveContract
-    .connect(randomPerson.address)
-    .waveTo(owner.address);
-  await thirdWaveTransaction.wait();
+  for (let i = 0; i < 3; i++) {
+    const thirdWaveTransaction = await waveContract.connect(signers[2]).wave();
+    await thirdWaveTransaction.wait();
 
-  const fourthWaveTransaction = await waveContract
-    .connect(owner.address)
-    .waveTo(randomPerson.address);
-  await fourthWaveTransaction.wait();
+    const fourthWaveTransation = await waveContract.connect(signers[3]).wave();
+    await fourthWaveTransation.wait();
+  }
 
   await waveContract.getTotalWaves();
 
-  await waveContract.getNumberOfWavesSentByAddress(
-    randomPerson.address,
-    owner.address
-  );
+  const waveCounts = {};
 
-  await waveContract.getMostWavesSender(owner.address);
-  await waveContract.getMostWavesSender(randomPerson.address);
+  for (let i = 0; i < signers.length; i++) {
+    const address = await signers[i].address;
+    const waveCount = await waveContract.getWavesForAddress(signers[i].address);
+    waveCounts[address] = waveCount.toString();
+    console.log(address, "has", waveCount.toString(), "waves");
+  }
+  console.log("Wave counts:", waveCounts);
 };
 
 const runMain = async () => {
